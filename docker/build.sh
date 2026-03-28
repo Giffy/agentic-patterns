@@ -1,0 +1,1 @@
+docker build --no-cache -t agent-server -f docker/Dockerfile .

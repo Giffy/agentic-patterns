@@ -97,7 +97,7 @@ async def chat_completions(request: ChatCompletionRequest):
     try:
         # We use 'cloud' mode for the server by default to ensure reliability in the IDE,
         # but this could be parameterized or pulled from env.
-        agent = UnifiedAgent(model_type="cloud", architecture=arch)
+        agent = UnifiedAgent(model_type="local", architecture=arch)
         result = agent.run(user_task)
         
         # 4. Extract final answer
