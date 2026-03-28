@@ -31,7 +31,7 @@ def main():
         "--arch", 
         type=str, 
         default="router", 
-        choices=["prompt_chain", "parallel", "orchestrator", "router"],
+        choices=["prompt_chain", "parallel", "orchestrator", "router", "direct"],
         help="Architecture to use. 'router' auto-selects based on task complexity."
     )
 
@@ -59,8 +59,8 @@ def main():
         meta = result.get("execution_metadata", {})
         if meta:
             duration = meta.get("total_duration", 0)
-            tokens = meta.get("total_tokens", 0)
-            usage = meta.get("usage", {})
+            tokens   = meta.get("total_tokens", 0)
+            usage    = meta.get("usage", {})
             print(f" Total Duration: {duration:.2f}s")
             print(f" Total Tokens: {tokens:,} (In: {usage.get('input', 0):,}, Out: {usage.get('output', 0):,})")
             

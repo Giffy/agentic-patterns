@@ -30,10 +30,10 @@ Use `uv run main_unified.py` to trigger the agent from the command line:
 
 ```bash
 # Auto-route a complex task using hybrid models
-uv run main_unified.py --task "Research the history of AI and identify 5 key milestones" --model hybrid --arch router
+uv run main.py --task "Research the history of AI and identify 5 key milestones" --model hybrid --arch router
 
 # Run a simple task using only local models
-uv run main_unified.py --task "What is 2+2?" --model local --arch prompt_chain
+uv run main.py --task "What is 2+2?" --model local --arch prompt_chain
 ```
 
 ### Python API
@@ -60,12 +60,12 @@ Create a `.env` file in the root directory:
 
 ```env
 # Cloud Model Configuration
-HOST=https://api.openai.com/v1
-MODEL=gpt-4o
-API_KEY=your_api_key_here
+CLOUD_HOST=https://api.openai.com/v1
+CLOUD_MODEL=gpt-4o
+CLOUD_API_KEY=your_api_key_here
 
 # Local Model Configuration (Ollama)
-OLLAMA_HOST=http://localhost:11434
+LOCAL_HOST=http://localhost:11434
 LOCAL_MODEL=llama3
 ```
 

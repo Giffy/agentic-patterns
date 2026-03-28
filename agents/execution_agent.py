@@ -75,7 +75,12 @@ class ExecutionAgent(BaseAgent):
                     total_in += usage.get("input_tokens", 0)
                     total_out += usage.get("output_tokens", 0)
                 
-                logger.info(f"[{self.agent_name}] Graph execution finished: duration={duration:.2f}s, tokens={total_in + total_out} (in={total_in}, out={total_out})")
+                # Extract model/host info for logging
+                m_name = getattr(self.llm, "model_name", getattr(self.llm, "model", "unknown"))
+                h_name = getattr(self.llm, "base_url", getattr(self.llm, "openai_api_base", "unknown"))
+                model_info = f"model={m_name}, host={h_name}"
+
+                logger.info(f"[{self.agent_name}] Graph execution finished: duration={duration:.2f}s, tokens={total_in + total_out} (in={total_in}, out={total_out}), {model_info}")
                 
                 # Store metadata if requested
                 if metadata is not None:

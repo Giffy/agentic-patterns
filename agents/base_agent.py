@@ -68,8 +68,15 @@ class BaseAgent:
             tokens_info = f"tokens={usage.get('total_tokens', 0)}"
             if usage.get("input_tokens") or usage.get("output_tokens"):
                 tokens_info += f" (in={usage.get('input_tokens', 0)}, out={usage.get('output_tokens', 0)})"
+            
+            # Extract model/host info for logging
+            model_info = "model=unknown, host=unknown"
+            if hasattr(self.llm, "model_name") or hasattr(self.llm, "model"):
+                m_name = getattr(self.llm, "model_name", getattr(self.llm, "model", "unknown"))
+                h_name = getattr(self.llm, "base_url", getattr(self.llm, "openai_api_base", "unknown"))
+                model_info = f"model={m_name}, host={h_name}"
 
-            logger.info(f"[{self.agent_name}] Invocation finished: duration={duration:.2f}s, {tokens_info}")
+            logger.info(f"[{self.agent_name}] Invocation finished: duration={duration:.2f}s, {tokens_info}, {model_info}")
             
             # Store metadata if requested
             if metadata is not None:

@@ -4,11 +4,12 @@ from typing import Dict, Any, Union, List
 
 # Core Agent Imports
 from agents import PlanningAgent, ExecutionAgent, EvaluatorAgent, SummarizerAgent
-from workflows import SequentialWorkflow, ParallelWorkflow
+from workflows import SequentialWorkflow, ParallelWorkflow, DirectWorkflow
 from orchestators import LangGraphOrchestrator
 from services.llm_factory import LLMFactory
 from services.coordinator import Coordinator
 from tools.web_search_tool import WebSearchTool
+from tools.compress_context_tool import CompressContextTool
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class UnifiedAgent:
         
         # 2. Tools
         self.web_search_tool = WebSearchTool()
+        self.compress_context_tool = CompressContextTool()
         
         # 3. Agents
         self.planner    = PlanningAgent(llm=self.llm_bundle["planner"])
@@ -61,12 +63,16 @@ class UnifiedAgent:
         # Implementation dispatch
         result = {}
         if arch_to_use == "prompt_chain":
-            workflow = SequentialWorkflow(agents=self.agent_dict, tools=[self.web_search_tool])
+            workflow = SequentialWorkflow(agents=self.agent_dict, tools=[self.compress_context_tool])
             result = workflow.run(task=task)
             
         elif arch_to_use == "parallel":
             # Assuming parallel sub-workflow for simple tasks (can be customized further)
             workflow = ParallelWorkflow(agents=self.agent_dict)
+            result = workflow.run(task=task)
+            
+        elif arch_to_use == "direct":
+            workflow = DirectWorkflow(agents=self.agent_dict)
             result = workflow.run(task=task)
             
         elif arch_to_use == "orchestrator":
