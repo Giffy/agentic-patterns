@@ -28,6 +28,7 @@ class ChatCompletionRequest(BaseModel):
 class ChatCompletionResponseChoice(BaseModel):
     index: int
     message: ChatMessage
+    logprobs: Optional[Any] = None
     finish_reason: str = "stop"
 
 class ChatCompletionUsage(BaseModel):
@@ -64,6 +65,20 @@ def map_model_to_arch(model_name: str) -> str:
 @app.get("/")
 async def root():
     return {"status": "ok", "message": "Agentic Patterns Server is running."}
+
+@app.get("/v1/models")
+async def list_models():
+    """
+    Returns the list of available agent models for the IDE.
+    """
+    models = [
+        {"id": "agent-router", "object": "model", "created": int(time.time()), "owned_by": "agentic-patterns"},
+        {"id": "agent-orchestrator", "object": "model", "created": int(time.time()), "owned_by": "agentic-patterns"},
+        {"id": "agent-sequential", "object": "model", "created": int(time.time()), "owned_by": "agentic-patterns"},
+        {"id": "agent-parallel", "object": "model", "created": int(time.time()), "owned_by": "agentic-patterns"},
+        {"id": "agent-direct", "object": "model", "created": int(time.time()), "owned_by": "agentic-patterns"},
+    ]
+    return {"object": "list", "data": models}
 
 @app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
 async def chat_completions(request: ChatCompletionRequest):
@@ -106,7 +121,7 @@ async def chat_completions(request: ChatCompletionRequest):
         )
 
         # 6. Build OpenAI response
-        return ChatCompletionResponse(
+        response_data = ChatCompletionResponse(
             model=request.model,
             choices=[
                 ChatCompletionResponseChoice(
@@ -116,6 +131,53 @@ async def chat_completions(request: ChatCompletionRequest):
             ],
             usage=usage
         )
+
+        if not request.stream:
+            logger.info(f"Sending non-streaming response for {request.model}")
+            return response_data
+        else:
+            # For streaming, we send a series of chunks. 
+            # Even if the agent isn't natively streaming, we wrap the final result in a stream format.
+            # This is often required by IDE extensions that open a streaming connection.
+            logger.info(f"Sending streaming response (final-only chunk) for {request.model}")
+            from fastapi.responses import StreamingResponse
+            import json
+
+            async def stream_generator():
+                # Yield the content chunk
+                chunk = {
+                    "id": response_data.id,
+                    "object": "chat.completion.chunk",
+                    "created": response_data.created,
+                    "model": response_data.model,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {"role": "assistant", "content": final_answer},
+                            "finish_reason": None
+                        }
+                    ]
+                }
+                yield f"data: {json.dumps(chunk)}\n\n"
+                
+                # Yield the final stop chunk
+                stop_chunk = {
+                    "id": response_data.id,
+                    "object": "chat.completion.chunk",
+                    "created": response_data.created,
+                    "model": response_data.model,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {},
+                            "finish_reason": "stop"
+                        }
+                    ]
+                }
+                yield f"data: {json.dumps(stop_chunk)}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(stream_generator(), media_type="text/event-stream")
         
     except Exception as e:
         logger.error(f"Error running agent: {str(e)}")
