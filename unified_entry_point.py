@@ -72,6 +72,7 @@ class UnifiedAgent:
             result = workflow.run(task=task)
             
         elif arch_to_use == "direct":
+            # Direct workflow for simple tasks
             workflow = DirectWorkflow(agents=self.agent_dict)
             result = workflow.run(task=task)
             

@@ -23,12 +23,12 @@ class LLMFactory:
         """
         
         # Load config from env
-        cloud_model = os.getenv("MODEL", "gpt-4o")
-        cloud_host = os.getenv("HOST", "https://api.openai.com/v1")
-        cloud_api_key = os.getenv("API_KEY")
+        cloud_model = os.getenv("CLOUD_MODEL", "gpt-4o")
+        cloud_host = os.getenv("CLOUD_HOST", "https://api.openai.com/v1")
+        cloud_api_key = os.getenv("CLOUD_API_KEY")
 
         local_model = os.getenv("LOCAL_MODEL", "smollm3:135m")
-        local_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        local_host = os.getenv("LOCAL_HOST", "http://localhost:11434")
 
         if mode == "local" or (mode == "cloud" and "localhost" in cloud_host.lower()):
             # If "cloud" mode points to a local host, use ChatOllama
