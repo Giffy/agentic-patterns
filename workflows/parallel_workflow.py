@@ -87,3 +87,37 @@ class ParallelWorkflow(BaseWorkflow):
                 "usage": {"input": total_in, "output": total_out}
             }
         }
+
+    def get_mermaid(self) -> str:
+        """
+        Generates a Mermaid diagram for the ParallelWorkflow.
+        """
+        return """
+graph TD
+    Start((Start)) --> User([User Query])
+    User --> Planner{{Planning Agent}}
+    Planner --> SubTasks[Sub-Tasks]
+    SubTasks --> Exec1{{Executor 1}}
+    SubTasks --> Exec2{{Executor 2}}
+    SubTasks --> ExecN{{Executor N}}
+    Exec1 --> Summarizer{{Summarizer Agent}}
+    Exec2 --> Summarizer
+    ExecN --> Summarizer
+    Summarizer --> Result([Final Result])
+    Result --> End((End))
+        """.strip()
+
+    def _to_graph(self):
+        """
+        Produce a langgraph representation of this pattern for orchestration.
+        """
+        from langgraph.graph import StateGraph, END
+        workflow = StateGraph(dict)
+        workflow.add_node("planning_agent", lambda x: x)
+        workflow.add_node("parallel_execution", lambda x: x)
+        workflow.add_node("summarizer_agent", lambda x: x)
+        workflow.set_entry_point("planning_agent")
+        workflow.add_edge("planning_agent", "parallel_execution")
+        workflow.add_edge("parallel_execution", "summarizer_agent")
+        workflow.add_edge("summarizer_agent", END)
+        return workflow.compile()

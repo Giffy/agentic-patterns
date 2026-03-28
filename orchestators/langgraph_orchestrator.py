@@ -1,12 +1,13 @@
 import logging
 import operator
-from typing import Annotated, Any, Dict, List, Sequence, TypedDict
+from typing import Annotated, Any, Dict, List, Optional, Sequence, TypedDict
 from langchain_core.messages import BaseMessage
 
 from langgraph.graph import StateGraph, END
 from agents.planning_agent import PlanningAgent
 from agents.execution_agent import ExecutionAgent
 from agents.evaluator_agent import EvaluatorAgent
+from workflows.base_workflow import BaseWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class OrchestratorState(TypedDict):
     total_out: int
 
 
-class LangGraphOrchestrator:
+class LangGraphOrchestrator(BaseWorkflow):
     """
     An instantiable Orchestrator that uses LangGraph to coordinate
     Planning, Execution, and Monitoring agents in a robust state machine.
@@ -42,6 +43,15 @@ class LangGraphOrchestrator:
         summarizer: Any = None,
         max_retries: int = 2
     ):
+        # Initialize BaseWorkflow
+        agents = {
+            "planner": planner,
+            "executor": executor,
+            "evaluator": evaluator,
+            "summarizer": summarizer
+        }
+        super().__init__(agents=agents, workflow_name="LangGraphOrchestrator")
+        
         self.planner = planner
         self.executor = executor
         self.evaluator = evaluator
@@ -258,3 +268,44 @@ class LangGraphOrchestrator:
         }
         
         return final_state
+
+    def get_mermaid(self) -> str:
+        """
+        Generates a Mermaid diagram for the Orchestrator.
+        """
+        # LangGraph has its own Mermaid generation
+        try:
+             # This requires extra packages in some environments
+             return self.graph.get_graph().draw_mermaid()
+        except Exception:
+            return """
+graph TD
+    Start((Start)) --> Planner[Planner Node]
+    Planner --> Executor[Executor Node]
+    Executor --> Evaluator[Evaluator Node]
+    Evaluator -->|Success / Finished| End((End))
+    Evaluator -->|Failure / Retry| Executor
+    Evaluator -->|Next Step| Executor
+        """.strip()
+
+    def draw(self, output_path: Optional[str] = None) -> str:
+        """
+        Generates the graph visualization and saves it as a PNG.
+        """
+        # Call base to get mermaid and handle text saving if needed
+        mermaid_code = super().draw(output_path)
+        
+        # Use filename as name like user requested
+        png_name = f"{self.workflow_name}.png"
+        
+        try:
+            # Native LangGraph PNG generation
+            import os
+            png_bytes = self.graph.get_graph().draw_mermaid_png()
+            with open(os.path.join("workflows", png_name), "wb") as f:
+                f.write(png_bytes)
+            logger.info(f"[{self.workflow_name}] Graph visualization saved to {png_name}")
+        except Exception as e:
+            logger.warning(f"[{self.workflow_name}] Could not save graph as PNG: {e}")
+            
+        return mermaid_code

@@ -126,3 +126,38 @@ class SequentialWorkflow(BaseWorkflow):
                 "usage": {"input": total_in, "output": total_out}
             }
         }
+
+    def get_mermaid(self) -> str:
+        """
+        Generates a Mermaid diagram for the SequentialWorkflow.
+        """
+        return """
+graph TD
+    Start((Start)) --> User([User Query])
+    User --> Planner{{Planning Agent}}
+    Planner --> Plan[Plan Steps]
+    Plan --> Step{Next Step?}
+    Step -->|Yes| Executor{{Execution Agent}}
+    Executor --> Evaluator{{Evaluator Agent}}
+    Evaluator -->|Success| Context[Update Context]
+    Context --> Step
+    Evaluator -->|Failure / Retry| Executor
+    Step -->|No| Result([Final Result])
+    Result --> End((End))
+        """.strip()
+
+    def _to_graph(self):
+        """
+        Produce a langgraph representation of this pattern for orchestration.
+        """
+        from langgraph.graph import StateGraph, END
+        workflow = StateGraph(dict)
+        workflow.add_node("planning_agent", lambda x: x)
+        workflow.add_node("execution_agent", lambda x: x)
+        workflow.add_node("evaluator_agent", lambda x: x)
+        workflow.set_entry_point("planning_agent")
+        workflow.add_edge("planning_agent", "execution_agent")
+        workflow.add_edge("execution_agent", "evaluator_agent")
+        workflow.add_edge("evaluator_agent", "execution_agent") # Loop
+        workflow.add_edge("evaluator_agent", END)
+        return workflow.compile()

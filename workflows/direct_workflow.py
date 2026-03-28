@@ -40,3 +40,29 @@ class DirectWorkflow(BaseWorkflow):
                 }
             }
         }
+
+    def get_mermaid(self) -> str:
+        """
+        Generates a Mermaid diagram for the DirectWorkflow.
+        """
+        return """
+graph TD
+    Start((Start)) --> User([User Query])
+    User --> Executor{{Execution Agent}}
+    Executor --> Result([Result])
+    Result --> End((End))
+        """.strip()
+
+    def _to_graph(self):
+        """
+        Produce a langgraph representation of this pattern for orchestration.
+        """
+        from langgraph.graph import StateGraph, END
+        # Dummy structure for visualization
+        workflow = StateGraph(dict)
+        workflow.add_node("user_query", lambda x: x)
+        workflow.add_node("execution_agent", lambda x: x)
+        workflow.set_entry_point("user_query")
+        workflow.add_edge("user_query", "execution_agent")
+        workflow.add_edge("execution_agent", END)
+        return workflow.compile()

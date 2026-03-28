@@ -62,19 +62,24 @@ class UnifiedAgent:
             
         # Implementation dispatch
         result = {}
-        if arch_to_use == "prompt_chain":
+        if arch_to_use == "direct":
+            # Direct workflow for simple tasks
+            workflow = DirectWorkflow(agents=self.agent_dict)
+            workflow.draw()
+            result = workflow.run(task=task)
+        
+        elif arch_to_use == "prompt_chain":
             workflow = SequentialWorkflow(agents=self.agent_dict, tools=[self.compress_context_tool])
+            workflow.draw()
             result = workflow.run(task=task)
             
         elif arch_to_use == "parallel":
             # Assuming parallel sub-workflow for simple tasks (can be customized further)
             workflow = ParallelWorkflow(agents=self.agent_dict)
+            workflow.draw()
             result = workflow.run(task=task)
             
-        elif arch_to_use == "direct":
-            # Direct workflow for simple tasks
-            workflow = DirectWorkflow(agents=self.agent_dict)
-            result = workflow.run(task=task)
+
             
         elif arch_to_use == "orchestrator":
             orchestrator = LangGraphOrchestrator(
@@ -84,6 +89,7 @@ class UnifiedAgent:
                 summarizer=self.summarizer,
                 max_retries=2
             )
+            orchestrator.draw()
             result = orchestrator.run(task=task)
             
         else:
@@ -94,6 +100,7 @@ class UnifiedAgent:
                 evaluator=self.evaluator,
                 summarizer=self.summarizer
             )
+            orchestrator.draw()
             result = orchestrator.run(task=task)
 
         # Merge routing metrics if they exist
