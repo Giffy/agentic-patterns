@@ -61,7 +61,7 @@ class UnifiedAgent:
         # Implementation dispatch
         result = {}
         if arch_to_use == "prompt_chain":
-            workflow = SequentialWorkflow(agents=self.agent_dict, tools=[self.compressor, self.web_search_tool])
+            workflow = SequentialWorkflow(agents=self.agent_dict, tools=[self.web_search_tool])
             result = workflow.run(task=task)
             
         elif arch_to_use == "parallel":
