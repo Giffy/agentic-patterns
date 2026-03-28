@@ -1,0 +1,41 @@
+services:
+
+  agent-server:
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    # container_name: agent-server
+    # ports:
+    #   - "8000:8000"
+    # volumes:
+    #   - .:/app
+    # networks:
+    #   - agent-network
+    image: agent-server
+    container_name: agent-server
+    hostname: agent-server
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/app
+    networks:
+      - agent-network
+
+  ollama:
+    #image: alpine/ollama
+    image: alpine/llama3.2
+    container_name: ollama
+    hostname: ollama
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - agent-network
+
+volumes:
+  ollama_data:
+
+networks:
+  agent-network:
+    driver: bridge
