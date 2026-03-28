@@ -55,37 +55,29 @@ class BaseWorkflow(ABC):
         
     def draw(self, output_path: Optional[str] = None) -> str:
         """
-        Generates the Mermaid diagram and saves it to a file. 
-        If output_path has .png extension, it tries to render it.
+        Generates the workflow visualization and saves it as a PNG.
         """
         mermaid_code = self.get_mermaid()
         
         # Use default name if not provided (always in workflows/ folder)
         if not output_path:
-            output_path = os.path.join("workflows", f"{self.workflow_name}.mmd")
+            output_path = os.path.join("workflows", f"{self.workflow_name}.png")
+            
+        if not output_path.endswith(".png"):
+            output_path = output_path.replace(".mmd", ".png") if ".mmd" in output_path else output_path + ".png"
             
         # Ensure folder exists
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         
-        # Save Mermaid text
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(mermaid_code)
-        logger.info(f"[{self.workflow_name}] Mermaid diagram saved to {output_path}")
-
-        # Try to save PNG
-        png_path = output_path.replace(".mmd", ".png") if ".mmd" in output_path else output_path
-        if not png_path.endswith(".png"):
-            png_path += ".png"
-
         try:
             # If the workflow provides a LangGraph representation, use it to draw PNG
             if hasattr(self, "_to_graph"):
                 graph = self._to_graph()
                 if graph:
                     png_bytes = graph.get_graph().draw_mermaid_png()
-                    with open(png_path, "wb") as f:
+                    with open(output_path, "wb") as f:
                         f.write(png_bytes)
-                    logger.info(f"[{self.workflow_name}] Graph visualization saved to {png_path}")
+                    logger.info(f"[{self.workflow_name}] Graph visualization saved to {output_path}")
         except Exception as e:
             # Fallback for systems without Graphviz/pygraphviz
             logger.warning(f"[{self.workflow_name}] Could not save graph as PNG: {e}")

@@ -288,24 +288,15 @@ graph TD
     Evaluator -->|Next Step| Executor
         """.strip()
 
+    def _to_graph(self):
+        """
+        Produce a langgraph representation of this pattern for orchestration.
+        """
+        return self.graph
+
     def draw(self, output_path: Optional[str] = None) -> str:
         """
         Generates the graph visualization and saves it as a PNG.
         """
-        # Call base to get mermaid and handle text saving if needed
-        mermaid_code = super().draw(output_path)
-        
-        # Use filename as name like user requested
-        png_name = f"{self.workflow_name}.png"
-        
-        try:
-            # Native LangGraph PNG generation
-            import os
-            png_bytes = self.graph.get_graph().draw_mermaid_png()
-            with open(os.path.join("workflows", png_name), "wb") as f:
-                f.write(png_bytes)
-            logger.info(f"[{self.workflow_name}] Graph visualization saved to {png_name}")
-        except Exception as e:
-            logger.warning(f"[{self.workflow_name}] Could not save graph as PNG: {e}")
-            
-        return mermaid_code
+        # BaseWorkflow.draw now handles everything including PNG if _to_graph exists
+        return super().draw(output_path)
