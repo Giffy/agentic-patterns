@@ -1,12 +1,12 @@
 import json
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 from .base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-class MonitoringAgent(BaseAgent):
+class EvaluatorAgent(BaseAgent):
     """
     Agent responsible for evaluating the output of an execution step 
     against its initial objective to determine success and provide feedback.
@@ -26,16 +26,17 @@ class MonitoringAgent(BaseAgent):
         super().__init__(
             llm=llm, 
             system_prompt=kwargs.get("system_prompt", system_prompt),
-            agent_name="MonitoringAgent"
+            agent_name="EvaluatorAgent"
         )
         
-    def evaluate(self, objective: str, result: str) -> Dict[str, Any]:
+    def evaluate(self, objective: str, result: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Evaluates the execution result against the objective.
         
         Args:
             objective: What the step was supposed to do.
             result: What the execution agent actually did.
+            metadata: Optional dictionary to capture performance metrics.
             
         Returns:
             Dictionary with 'success' (bool) and 'feedback' (str).
@@ -48,7 +49,7 @@ class MonitoringAgent(BaseAgent):
             "Evaluate if the Actual Output successfully meets the Original Objective."
         )
         
-        response_text = self.invoke(evaluation_prompt)
+        response_text = self.invoke(evaluation_prompt, metadata=metadata)
         
         try:
             clean_text = response_text.replace("```json", "").replace("```", "").strip()

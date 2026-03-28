@@ -3,14 +3,14 @@ from typing import Any, Dict, List
 from .base_workflow import BaseWorkflow
 from agents.planning_agent import PlanningAgent
 from agents.execution_agent import ExecutionAgent
-from agents.monitoring_agent import MonitoringAgent
+from agents.evaluator_agent import EvaluatorAgent
 
 logger = logging.getLogger(__name__)
 
 class SequentialWorkflow(BaseWorkflow):
     """
     A workflow that uses a PlanningAgent to break down the task,
-    then evaluates each step sequentially using ExecutionAgent and MonitoringAgent.
+    then evaluates each step sequentially using ExecutionAgent and EvaluatorAgent.
     """
     
     def __init__(self, agents: Dict[str, Any], tools: List[Any] = None):
@@ -19,7 +19,7 @@ class SequentialWorkflow(BaseWorkflow):
         # Ensure the right types of agents were passed
         assert "planner" in self.agents, "SequentialWorkflow requires a 'planner' agent."
         assert "executor" in self.agents, "SequentialWorkflow requires an 'executor' agent."
-        assert "monitor" in self.agents, "SequentialWorkflow requires a 'monitor' agent."
+        assert "evaluator" in self.agents, "SequentialWorkflow requires a 'evaluator' agent."
 
     def run(self, task: str, max_retries: int = 2) -> Dict[str, Any]:
         """
@@ -29,7 +29,7 @@ class SequentialWorkflow(BaseWorkflow):
         
         planner: PlanningAgent = self.get_agent("planner")
         executor: ExecutionAgent = self.get_agent("executor")
-        monitor: MonitoringAgent = self.get_agent("monitor")
+        evaluator: EvaluatorAgent = self.get_agent("evaluator")
         
         # 1. Generate the plan
         plan_steps = planner.generate_plan(task)
@@ -37,6 +37,22 @@ class SequentialWorkflow(BaseWorkflow):
         
         results = []
         context = ""
+        total_duration = 0.0
+        total_in = 0
+        total_out = 0
+        
+        def capture_metrics(m):
+            nonlocal total_duration, total_in, total_out
+            total_duration += m.get("duration", 0)
+            u = m.get("usage", {})
+            total_in += u.get("input_tokens", 0)
+            total_out += u.get("output_tokens", 0)
+
+        # 1. Generate the plan
+        m_planner = {}
+        plan_steps = planner.generate_plan(task, metadata=m_planner)
+        capture_metrics(m_planner)
+        logger.info(f"[{self.workflow_name}] Generated {len(plan_steps)} steps.")
         
         # 2. Execute sequentially
         for i, step in enumerate(plan_steps, 1):
@@ -55,7 +71,9 @@ class SequentialWorkflow(BaseWorkflow):
                 if current_context and getattr(self, 'tools', None):
                     compressor = self.tools[0]
                     if hasattr(compressor, 'invoke'):
-                        current_context = compressor.invoke(current_context)
+                        m_comp = {}
+                        current_context = compressor.invoke(current_context, metadata=m_comp)
+                        capture_metrics(m_comp)
                     elif hasattr(compressor, '_run'):
                         current_context = compressor._run(current_context)
                         
@@ -63,10 +81,15 @@ class SequentialWorkflow(BaseWorkflow):
                     current_context += f"\nPrevious attempt failed. Feedback: {feedback}"
                 
                 # Execute
-                step_result = executor.execute_step(step, context=current_context)
+                m_exec = {}
+                step_result = executor.execute_step(step, context=current_context, metadata=m_exec)
+                capture_metrics(m_exec)
                 
                 # Monitor/Evaluate
-                eval_data = monitor.evaluate(objective=step, result=step_result)
+                m_eval = {}
+                eval_data = monitor.evaluate(step, step_result, metadata=m_eval)
+                capture_metrics(m_eval)
+                
                 success = eval_data.get("success", False)
                 feedback = eval_data.get("feedback", "")
                 
@@ -79,7 +102,12 @@ class SequentialWorkflow(BaseWorkflow):
                 return {
                     "status": "failed",
                     "failed_step": step,
-                    "completed_results": results
+                    "completed_results": results,
+                    "execution_metadata": {
+                        "total_duration": total_duration,
+                        "total_tokens": total_in + total_out,
+                        "usage": {"input": total_in, "output": total_out}
+                    }
                 }
             
             # Append success result to context for the next step
@@ -90,5 +118,10 @@ class SequentialWorkflow(BaseWorkflow):
         logger.info(f"[{self.workflow_name}] Task completed successfully.")
         return {
             "status": "success",
-            "completed_results": results
+            "completed_results": results,
+            "execution_metadata": {
+                "total_duration": total_duration,
+                "total_tokens": total_in + total_out,
+                "usage": {"input": total_in, "output": total_out}
+            }
         }

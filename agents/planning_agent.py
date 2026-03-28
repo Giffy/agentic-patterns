@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 from .base_agent import BaseAgent
 
@@ -26,19 +26,20 @@ class PlanningAgent(BaseAgent):
             agent_name="PlanningAgent"
         )
         
-    def generate_plan(self, task: str) -> List[str]:
+    def generate_plan(self, task: str, metadata: Optional[Dict[str, Any]] = None) -> List[str]:
         """
         Generates a plan from a given task.
         
         Args:
             task: The high-level objective.
+            metadata: Optional dictionary to capture performance metrics.
             
         Returns:
             A list of strings representing the steps.
         """
         logger.info(f"[{self.agent_name}] Generating plan for task: {task[:50]}")
         
-        response_text = self.invoke(task)
+        response_text = self.invoke(task, metadata=metadata)
         
         try:
             # Clean up potential markdown formatting (e.g., ```json ... ```)

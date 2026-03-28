@@ -1,5 +1,6 @@
+import time
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.prebuilt import create_react_agent
@@ -35,9 +36,14 @@ class ExecutionAgent(BaseAgent):
         else:
             self.agent_executor = None
         
-    def execute_step(self, step_description: str, context: str = "") -> str:
+    def execute_step(self, step_description: str, context: str = "", metadata: Optional[Dict[str, Any]] = None) -> str:
         """
         Executes a single step given optional context.
+        
+        Args:
+            step_description: The task to perform.
+            context: Previous context for the task.
+            metadata: Optional dictionary to capture performance metrics.
         """
         logger.info(f"[{self.agent_name}] Executing step: {step_description[:50]}")
         
@@ -49,9 +55,39 @@ class ExecutionAgent(BaseAgent):
             try:
                 # Include system prompt directly in the user message to ensure it's respected across all langgraph versions
                 full_prompt = f"{self.system_prompt}\n\n{input_prompt}"
+                
+                start_time = time.perf_counter()
                 response = self.agent_executor.invoke({"messages": [("user", full_prompt)]})
+                duration = time.perf_counter() - start_time
+                
+                # Aggregate tokens across the graph execution steps
+                total_in = 0
+                total_out = 0
+                for msg in response.get("messages", []):
+                    # Check for usage metadata in each message
+                    usage = getattr(msg, "usage_metadata", {})
+                    if not usage:
+                        meta = getattr(msg, "response_metadata", {})
+                        usage = {
+                            "input_tokens": meta.get("prompt_eval_count", meta.get("token_usage", {}).get("prompt_tokens", 0)),
+                            "output_tokens": meta.get("eval_count", meta.get("token_usage", {}).get("completion_tokens", 0)),
+                        }
+                    total_in += usage.get("input_tokens", 0)
+                    total_out += usage.get("output_tokens", 0)
+                
+                logger.info(f"[{self.agent_name}] Graph execution finished: duration={duration:.2f}s, tokens={total_in + total_out} (in={total_in}, out={total_out})")
+                
+                # Store metadata if requested
+                if metadata is not None:
+                    metadata["duration"] = duration
+                    metadata["usage"] = {
+                        "input_tokens": total_in,
+                        "output_tokens": total_out,
+                        "total_tokens": total_in + total_out
+                    }
+                
                 return response["messages"][-1].content
             except Exception as e:
                 logger.error(f"[{self.agent_name}] AgentExecutor failed: {e}")
                 
-        return self.invoke(input_prompt)
+        return self.invoke(input_prompt, metadata=metadata)
