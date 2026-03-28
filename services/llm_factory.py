@@ -50,7 +50,7 @@ class LLMFactory:
             
         elif mode == "hybrid":
             # high reasoning roles -> cloud
-            if role in ["planner", "monitor", "coordinator"]:
+            if role in ["planner", "monitor", "coordinator", "evaluator", "summarizer"]:
                 return LLMFactory.get_llm(mode="cloud")
             # execution/support roles -> local
             else:
@@ -65,9 +65,11 @@ class LLMFactory:
         Returns a dictionary of LLMs for all standard agent roles.
         """
         return {
-            "planner": LLMFactory.get_llm(mode=mode, role="planner"),
-            "executor": LLMFactory.get_llm(mode=mode, role="executor"),
-            "monitor": LLMFactory.get_llm(mode=mode, role="monitor"),
+            "planner":    LLMFactory.get_llm(mode=mode, role="planner"),
+            "executor":   LLMFactory.get_llm(mode=mode, role="executor"),
+            "evaluator":  LLMFactory.get_llm(mode=mode, role="evaluator"),
+            "summarizer": LLMFactory.get_llm(mode=mode, role="summarizer"),
+            "monitor":    LLMFactory.get_llm(mode=mode, role="monitor"),
             "compressor": LLMFactory.get_llm(mode=mode, role="compressor"),
             "coordinator": LLMFactory.get_llm(mode=mode, role="coordinator")
         }

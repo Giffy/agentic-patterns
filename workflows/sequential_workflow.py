@@ -67,14 +67,15 @@ class SequentialWorkflow(BaseWorkflow):
                 # Add failure context if retrying
                 current_context = context
                 
-                # Compress context if tools are available (e.g., active_compressor)
-                if current_context and getattr(self, 'tools', None):
+                # Compress context if tools are available and the first tool looks like a compressor
+                if current_context and getattr(self, 'tools', None) and len(self.tools) > 0:
                     compressor = self.tools[0]
-                    if hasattr(compressor, 'invoke'):
+                    # Only use if it explicitly has compressor-like methods (and isn't a search tool)
+                    if hasattr(compressor, 'invoke') and "search" not in str(type(compressor)).lower():
                         m_comp = {}
                         current_context = compressor.invoke(current_context, metadata=m_comp)
                         capture_metrics(m_comp)
-                    elif hasattr(compressor, '_run'):
+                    elif hasattr(compressor, '_run') and "search" not in str(type(compressor)).lower():
                         current_context = compressor._run(current_context)
                         
                 if attempts > 0:
@@ -85,9 +86,9 @@ class SequentialWorkflow(BaseWorkflow):
                 step_result = executor.execute_step(step, context=current_context, metadata=m_exec)
                 capture_metrics(m_exec)
                 
-                # Monitor/Evaluate
+                # Evaluate
                 m_eval = {}
-                eval_data = monitor.evaluate(step, step_result, metadata=m_eval)
+                eval_data = evaluator.evaluate(step, step_result, metadata=m_eval)
                 capture_metrics(m_eval)
                 
                 success = eval_data.get("success", False)
