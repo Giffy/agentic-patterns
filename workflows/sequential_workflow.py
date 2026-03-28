@@ -73,7 +73,7 @@ class SequentialWorkflow(BaseWorkflow):
                     # Only use if it explicitly has compressor-like methods (and isn't a search tool)
                     if hasattr(compressor, 'invoke') and "search" not in str(type(compressor)).lower():
                         m_comp = {}
-                        current_context = compressor.invoke(current_context, metadata=m_comp)
+                        current_context = compressor.invoke(current_context, config={"metadata": m_comp})
                         capture_metrics(m_comp)
                     elif hasattr(compressor, '_run') and "search" not in str(type(compressor)).lower():
                         current_context = compressor._run(current_context)

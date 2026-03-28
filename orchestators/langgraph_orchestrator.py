@@ -125,7 +125,7 @@ class LangGraphOrchestrator(BaseWorkflow):
         if context and self.summarizer:
             if hasattr(self.summarizer, 'invoke'):
                 m_comp = {}
-                context = self.summarizer.invoke(context, metadata=m_comp)
+                context = self.summarizer.invoke(context, config={"metadata": m_comp})
                 total_duration += m_comp.get("duration", 0)
                 total_in += m_comp.get("usage", {}).get("input_tokens", 0)
                 total_out += m_comp.get("usage", {}).get("output_tokens", 0)

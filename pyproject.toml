@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.14.3",
     "dotenv>=0.9.9",
     "duckduckgo-search>=8.1.1",
+    "fastapi>=0.135.2",
     "langchain==1.2.11",
     "langchain-ollama==1.0.1",
     "langchain-openai==1.1.11",
@@ -15,6 +16,7 @@ dependencies = [
     "openai>=2.26.0",
     "python-dotenv>=1.2.2",
     "requests>=2.32.5",
+    "uvicorn>=0.42.0",
 ]
 
 [dependency-groups]

@@ -31,7 +31,7 @@
     // Workbench settings
     "workbench.sideBar.location": "left",
     "workbench.colorCustomizations": {
-        "titleBar.activeBackground": "#4c454d",
+        "titleBar.activeBackground": "#a62ab6",
         "titleBar.inactiveBackground": "default",
         
     },
